@@ -106,11 +106,22 @@ class $modify(ILLPlayLayer, PlayLayer) {
         HitboxVisualizer::get().setupForPlayLayer(this);
     }
 
+    void update(float dt) {
+        // Crucial: Execute Autoclicker and Macro replay at the START of update,
+        // BEFORE physics sub-stepping begins.
+        // This ensures playLayer->handleButton calls are queued and dispatched
+        // into all Geode hooks on the exact frame tick, allowing other bots
+        // (Silicate, Eclipse, xdbot, etc.) to record them seamlessly!
+        Autoclicker::get().onUpdate(this, dt);
+        MacroManager::get().onFrameTick(this);
+
+        PlayLayer::update(dt);
+    }
+
     void postUpdate(float dt) {
         PlayLayer::postUpdate(dt);
 
-        Autoclicker::get().onUpdate(this, dt);
-        MacroManager::get().onFrameTick(this);
+        // Visualizations are drawn after physics calculations
         TrajectoryVisualizer::get().updateTrajectory(this);
         HitboxVisualizer::get().updateHitboxes(this);
     }
@@ -133,31 +144,141 @@ class $modify(ILLPlayLayer, PlayLayer) {
 };
 
 // -----------------------------------------------------------------------------
-// KEYBOARD DISPATCHER (Custom Keybind & Fallback Hotkeys)
+// KEYBOARD DISPATCHER (Full Keybind Manager for ALL functions)
 // -----------------------------------------------------------------------------
 #if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_MACOS)
 class $modify(ILLKeyboardDispatcher, CCKeyboardDispatcher) {
     bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat, double time) {
         auto& cfg = Config::get();
 
-        // 1. If currently listening for new menu keybind in Keybinds tab:
-        if (cfg.isListeningForKey && isKeyDown && !isKeyRepeat) {
-            cfg.menuKeyCode = static_cast<int>(key);
-            cfg.isListeningForKey = false;
-            cfg.saveToSettings();
+        // 1. If currently listening for a bind in Keybinds tab:
+        if (cfg.listeningAction != BindAction::None && isKeyDown && !isKeyRepeat) {
+            if (key == KEY_Escape) {
+                // Cancel
+                cfg.listeningAction = BindAction::None;
+            } else if (key == KEY_Delete || key == KEY_BackSpace) {
+                // Clear bind
+                cfg.setKeyForAction(cfg.listeningAction, 0);
+                cfg.listeningAction = BindAction::None;
+            } else {
+                cfg.setKeyForAction(cfg.listeningAction, static_cast<int>(key));
+                cfg.listeningAction = BindAction::None;
+            }
             if (auto gui = SilicateGUI::get()) {
                 gui->refreshCurrentTab();
             }
-            return true; // Swallow the key
+            return true; // Swallow key
         }
 
-        // 2. Check if key triggers menu toggle
-        bool isMenuKey = (static_cast<int>(key) == cfg.menuKeyCode) ||
-                         (key == KEY_Tab) || (key == KEY_Alt) || (key == KEY_F);
+        // 2. Dispatch hotkeys for all 9 functions on KeyDown
+        if (isKeyDown && !isKeyRepeat) {
+            int pressed = static_cast<int>(key);
 
-        if (isMenuKey && isKeyDown && !isKeyRepeat) {
-            toggleILLBotMenu();
-            return true;
+            // Menu Toggle (Custom bind + fallback Tab)
+            if (pressed == cfg.keyMenu || key == KEY_Tab) {
+                toggleILLBotMenu();
+                return true;
+            }
+
+            // P1 Autoclicker Toggle
+            if (cfg.keyP1Auto != 0 && pressed == cfg.keyP1Auto) {
+                cfg.p1Autoclicker = !cfg.p1Autoclicker;
+                cfg.saveToSettings();
+                Notification::create(
+                    cfg.p1Autoclicker ? "P1 Autoclicker: ON" : "P1 Autoclicker: OFF",
+                    cfg.p1Autoclicker ? NotificationIcon::Success : NotificationIcon::Warning
+                )->show();
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // P2 Autoclicker Toggle
+            if (cfg.keyP2Auto != 0 && pressed == cfg.keyP2Auto) {
+                cfg.p2Autoclicker = !cfg.p2Autoclicker;
+                cfg.saveToSettings();
+                Notification::create(
+                    cfg.p2Autoclicker ? "P2 Autoclicker: ON" : "P2 Autoclicker: OFF",
+                    cfg.p2Autoclicker ? NotificationIcon::Success : NotificationIcon::Warning
+                )->show();
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // TPS Bypass Toggle
+            if (cfg.keyTPS != 0 && pressed == cfg.keyTPS) {
+                cfg.tpsEnabled = !cfg.tpsEnabled;
+                TPSManager::get().applyTPS();
+                cfg.saveToSettings();
+                Notification::create(
+                    cfg.tpsEnabled ? fmt::format("TPS Bypass: {:.0f} TPS", cfg.targetTPS) : "TPS Bypass: OFF",
+                    NotificationIcon::Info
+                )->show();
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // Trajectory Toggle
+            if (cfg.keyTrajectory != 0 && pressed == cfg.keyTrajectory) {
+                cfg.showTrajectory = !cfg.showTrajectory;
+                TrajectoryVisualizer::get().syncWithModEngines();
+                cfg.saveToSettings();
+                Notification::create(
+                    cfg.showTrajectory ? "Trajectory: ON" : "Trajectory: OFF",
+                    NotificationIcon::Info
+                )->show();
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // Hitboxes Toggle
+            if (cfg.keyHitboxes != 0 && pressed == cfg.keyHitboxes) {
+                cfg.showHitboxes = !cfg.showHitboxes;
+                cfg.saveToSettings();
+                Notification::create(
+                    cfg.showHitboxes ? "Hitboxes: ON" : "Hitboxes: OFF",
+                    NotificationIcon::Info
+                )->show();
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // Macro Record Toggle
+            if (cfg.keyMacroRecord != 0 && pressed == cfg.keyMacroRecord) {
+                if (cfg.macroMode == MacroMode::Record) {
+                    MacroManager::get().stop();
+                    Notification::create("Macro: Record Stopped", NotificationIcon::Warning)->show();
+                } else {
+                    MacroManager::get().startRecord();
+                    Notification::create("Macro: Recording Started", NotificationIcon::Success)->show();
+                }
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // Macro Play Toggle
+            if (cfg.keyMacroPlay != 0 && pressed == cfg.keyMacroPlay) {
+                if (cfg.macroMode == MacroMode::Play) {
+                    MacroManager::get().stop();
+                    Notification::create("Macro: Play Stopped", NotificationIcon::Warning)->show();
+                } else {
+                    MacroManager::get().startPlayback();
+                    Notification::create("Macro: Playback Started", NotificationIcon::Success)->show();
+                }
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
+
+            // Noclip Toggle
+            if (cfg.keyNoclip != 0 && pressed == cfg.keyNoclip) {
+                cfg.noclip = !cfg.noclip;
+                cfg.saveToSettings();
+                Notification::create(
+                    cfg.noclip ? "Noclip: ON" : "Noclip: OFF",
+                    cfg.noclip ? NotificationIcon::Warning : NotificationIcon::Info
+                )->show();
+                if (auto gui = SilicateGUI::get()) gui->refreshCurrentTab();
+                return true;
+            }
         }
 
         return CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat, time);

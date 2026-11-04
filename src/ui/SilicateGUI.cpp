@@ -617,6 +617,7 @@ void SilicateGUI::buildHitboxesTab() {
 }
 
 // =============================================================================
+// =============================================================================
 // TAB 6: KEYBINDS & SETTINGS
 // =============================================================================
 void SilicateGUI::buildKeybindsTab() {
@@ -632,63 +633,100 @@ void SilicateGUI::buildKeybindsTab() {
 
     auto& cfg = Config::get();
 
-    // Keybind Section
-    auto keyTitle = CCLabelBMFont::create("Menu Toggle Key:", "bigFont.fnt");
-    keyTitle->setScale(0.32f);
-    keyTitle->setAnchorPoint({0.0f, 0.5f});
-    keyTitle->setPosition({15.0f, 200.0f});
-    m_contentContainer->addChild(keyTitle);
+    struct BindItem {
+        BindAction action;
+        std::string label;
+        float x;
+        float y;
+    };
 
-    std::string btnText = cfg.isListeningForKey ? "[ Press Key... ]" : fmt::format("[ {} ]", cfg.getMenuKeyName());
-    auto keySpr = ButtonSprite::create(btnText.c_str(), "goldFont.fnt", cfg.isListeningForKey ? "GJ_button_01.png" : "GJ_button_04.png", 0.55f);
-    keySpr->setScale(0.60f);
-    auto keyBtn = CCMenuItemSpriteExtra::create(keySpr, this, menu_selector(SilicateGUI::onChangeMenuKey));
-    keyBtn->setPosition({200.0f, 200.0f});
-    menu->addChild(keyBtn);
+    std::vector<BindItem> items = {
+        // Column 1 (Left: x = 12.0f)
+        { BindAction::ToggleMenu,          "Menu Window",    12.0f, 204.0f },
+        { BindAction::ToggleP1Autoclicker, "P1 Clicker",     12.0f, 168.0f },
+        { BindAction::ToggleP2Autoclicker, "P2 Clicker",     12.0f, 132.0f },
+        { BindAction::ToggleTPS,           "TPS Bypass",     12.0f,  96.0f },
+        { BindAction::ToggleTrajectory,    "Trajectory",     12.0f,  60.0f },
 
-    // Noclip Toggle
-    auto noclipToggle = CCMenuItemToggler::createWithStandardSprites(
-        this, menu_selector(SilicateGUI::onToggleNoclip), 0.55f
-    );
-    noclipToggle->toggle(cfg.noclip);
-    noclipToggle->setPosition({20.0f, 155.0f});
-    menu->addChild(noclipToggle);
+        // Column 2 (Right: x = 158.0f)
+        { BindAction::ToggleHitboxes,      "Hitboxes",      158.0f, 204.0f },
+        { BindAction::ToggleMacroRecord,   "Macro Rec",     158.0f, 168.0f },
+        { BindAction::ToggleMacroPlay,     "Macro Play",    158.0f, 132.0f },
+        { BindAction::ToggleNoclip,        "Noclip",        158.0f,  96.0f }
+    };
 
-    auto noclipLbl = CCLabelBMFont::create("Noclip (Invincibility)", "bigFont.fnt");
-    noclipLbl->setScale(0.32f);
-    noclipLbl->setAnchorPoint({0.0f, 0.5f});
-    noclipLbl->setPosition({38.0f, 155.0f});
-    m_contentContainer->addChild(noclipLbl);
+    for (const auto& it : items) {
+        auto lbl = CCLabelBMFont::create(it.label.c_str(), "bigFont.fnt");
+        lbl->setScale(0.24f);
+        lbl->setAnchorPoint({0.0f, 0.5f});
+        lbl->setPosition({it.x, it.y});
+        m_contentContainer->addChild(lbl);
 
-    // Safe Mode Toggle
+        bool isListening = (cfg.listeningAction == it.action);
+        std::string keyText = isListening ? "[ Press... ]" : fmt::format("[ {} ]", cfg.getKeyDisplayName(cfg.getKeyForAction(it.action)));
+
+        auto btnSpr = ButtonSprite::create(keyText.c_str(), "goldFont.fnt", isListening ? "GJ_button_01.png" : "GJ_button_04.png", 0.50f);
+        btnSpr->setScale(0.52f);
+
+        auto btn = CCMenuItemSpriteExtra::create(btnSpr, this, menu_selector(SilicateGUI::onKeybindButtonClicked));
+        btn->setTag(static_cast<int>(it.action));
+        btn->setPosition({it.x + 95.0f, it.y});
+        menu->addChild(btn);
+    }
+
+    // Column 2, Row 5: Safe Mode Toggle
     auto safeToggle = CCMenuItemToggler::createWithStandardSprites(
-        this, menu_selector(SilicateGUI::onToggleSafeMode), 0.55f
+        this, menu_selector(SilicateGUI::onToggleSafeMode), 0.48f
     );
     safeToggle->toggle(cfg.safeMode);
-    safeToggle->setPosition({20.0f, 115.0f});
+    safeToggle->setPosition({170.0f, 60.0f});
     menu->addChild(safeToggle);
 
-    auto safeLbl = CCLabelBMFont::create("Safe Mode (Disable Leaderboard Submissions)", "bigFont.fnt");
-    safeLbl->setScale(0.30f);
+    auto safeLbl = CCLabelBMFont::create("Safe Mode", "bigFont.fnt");
+    safeLbl->setScale(0.24f);
     safeLbl->setAnchorPoint({0.0f, 0.5f});
-    safeLbl->setPosition({38.0f, 115.0f});
+    safeLbl->setPosition({188.0f, 60.0f});
     m_contentContainer->addChild(safeLbl);
 
-    // Drag Instructions
-    std::string tips =
-        "- Drag the top title bar to move this window anywhere!\n"
-        "- Press your configured Menu Key to toggle anytime\n"
-        "- Fallback hotkeys: Tab, F, Left Alt";
+    // Bottom info and Reset button
+    auto hintLbl = CCLabelBMFont::create("Esc: Cancel  |  Del: Clear", "chatFont.fnt");
+    hintLbl->setScale(0.58f);
+    hintLbl->setColor({180, 180, 195});
+    hintLbl->setAnchorPoint({0.0f, 0.5f});
+    hintLbl->setPosition({12.0f, 18.0f});
+    m_contentContainer->addChild(hintLbl);
 
-    auto tipsLbl = CCLabelBMFont::create(tips.c_str(), "chatFont.fnt");
-    tipsLbl->setScale(0.68f);
-    tipsLbl->setAnchorPoint({0.0f, 1.0f});
-    tipsLbl->setPosition({15.0f, 80.0f});
-    m_contentContainer->addChild(tipsLbl);
+    auto resetSpr = ButtonSprite::create("Reset Keys", "goldFont.fnt", "GJ_button_03.png", 0.45f);
+    resetSpr->setScale(0.48f);
+    auto resetBtn = CCMenuItemSpriteExtra::create(resetSpr, this, menu_selector(SilicateGUI::onResetKeybinds));
+    resetBtn->setPosition({240.0f, 18.0f});
+    menu->addChild(resetBtn);
 }
 
-void SilicateGUI::onChangeMenuKey(CCObject*) {
-    Config::get().isListeningForKey = !Config::get().isListeningForKey;
+void SilicateGUI::onKeybindButtonClicked(CCObject* sender) {
+    auto tag = static_cast<BindAction>(sender->getTag());
+    auto& cfg = Config::get();
+    if (cfg.listeningAction == tag) {
+        cfg.listeningAction = BindAction::None;
+    } else {
+        cfg.listeningAction = tag;
+    }
+    refreshCurrentTab();
+}
+
+void SilicateGUI::onResetKeybinds(CCObject*) {
+    auto& cfg = Config::get();
+    cfg.keyMenu = 9;         // Tab
+    cfg.keyP1Auto = 90;      // Z
+    cfg.keyP2Auto = 88;      // X
+    cfg.keyTPS = 66;         // B
+    cfg.keyTrajectory = 84;  // T
+    cfg.keyHitboxes = 72;    // H
+    cfg.keyMacroRecord = 82; // R
+    cfg.keyMacroPlay = 80;   // P
+    cfg.keyNoclip = 78;      // N
+    cfg.listeningAction = BindAction::None;
+    cfg.saveToSettings();
     refreshCurrentTab();
 }
 

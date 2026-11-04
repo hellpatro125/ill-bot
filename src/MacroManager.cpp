@@ -9,9 +9,27 @@ using namespace geode::prelude;
 void MacroManager::onLevelReset() {
     m_currentFrame = 0;
     m_playIndex = 0;
+    m_isReplaying = false;
+}
+
+void MacroManager::startRecord() {
+    Config::get().macroMode = MacroMode::Record;
+    clear();
+}
+
+void MacroManager::startPlayback() {
+    Config::get().macroMode = MacroMode::Play;
+    m_playIndex = 0;
+    m_currentFrame = 0;
+}
+
+void MacroManager::stop() {
+    Config::get().macroMode = MacroMode::Off;
+    m_isReplaying = false;
 }
 
 void MacroManager::handlePlayerInput(bool down, int button, bool isPlayer2) {
+    if (m_isReplaying) return;
     if (Config::get().macroMode == MacroMode::Record) {
         MacroAction act;
         act.frame = m_currentFrame;
@@ -26,11 +44,13 @@ void MacroManager::onFrameTick(PlayLayer* playLayer) {
     if (!playLayer || !playLayer->m_player1 || playLayer->m_player1->m_isDead) return;
 
     if (Config::get().macroMode == MacroMode::Play) {
+        m_isReplaying = true;
         while (m_playIndex < m_actions.size() && m_actions[m_playIndex].frame <= m_currentFrame) {
             const auto& act = m_actions[m_playIndex];
             playLayer->handleButton(act.down, act.button, act.player2);
             m_playIndex++;
         }
+        m_isReplaying = false;
     }
 
     m_currentFrame++;
@@ -40,6 +60,7 @@ void MacroManager::clear() {
     m_actions.clear();
     m_playIndex = 0;
     m_currentFrame = 0;
+    m_isReplaying = false;
 }
 
 static std::filesystem::path getMacrosDir() {

@@ -81,7 +81,8 @@ protected:
     void onToggleNoclip(cocos2d::CCObject* sender);
     void onToggleSafeMode(cocos2d::CCObject* sender);
 
-    void onChangeMenuKey(cocos2d::CCObject* sender);
+    void onKeybindButtonClicked(cocos2d::CCObject* sender);
+    void onResetKeybinds(cocos2d::CCObject* sender);
 
 public:
     static SilicateGUI* create();

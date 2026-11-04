@@ -9,6 +9,9 @@ public:
         return instance;
     }
 
+    // Prevents recursion and prevents synthetic clicks from clobbering physical hold state
+    bool m_isAutoclicking = false;
+
     // P1 Autoclicker State
     float m_p1Timer = 0.0f;
     bool m_p1IsDown = false;

@@ -7,9 +7,9 @@
   },
   "id": "maks.ill_bot",
   "name": "ILLBot",
-  "version": "v1.0.1",
+  "version": "v1.0.2",
   "developer": "Maks",
-  "description": "The ultimate Geometry Dash botting suite for Impossible Levels (ILL), featuring Silicate-styled draggable GUI, custom keybinds, independent P1/P2 Autoclickers, TPS Changer, Replay Macro, Trajectory and Hitboxes.",
+  "description": "The ultimate Geometry Dash botting suite for Impossible Levels (ILL), featuring Silicate-styled draggable GUI, full custom keybinds for all functions, independent P1/P2 Autoclickers, TPS Changer, Replay Macro, Trajectory and Hitboxes.",
   "links": {
     "community": "https://discord.gg/geode",
     "source": "https://github.com/hellpatro125/ill-bot"
@@ -33,11 +33,59 @@
       "type": "float",
       "default": -1.0
     },
-    "menu-key-code": {
-      "name": "Menu Hotkey Code",
-      "description": "Keyboard keycode to toggle the ILLBot menu window (Default: 9 for Tab).",
+    "key-menu": {
+      "name": "Menu Hotkey",
+      "description": "Keycode to toggle the ILLBot GUI window (Default: 9 for Tab).",
       "type": "int",
       "default": 9
+    },
+    "key-p1-auto": {
+      "name": "P1 Autoclicker Hotkey",
+      "description": "Keycode to toggle Player 1 Autoclicker (Default: 90 for Z).",
+      "type": "int",
+      "default": 90
+    },
+    "key-p2-auto": {
+      "name": "P2 Autoclicker Hotkey",
+      "description": "Keycode to toggle Player 2 Autoclicker (Default: 88 for X).",
+      "type": "int",
+      "default": 88
+    },
+    "key-tps": {
+      "name": "TPS Bypass Hotkey",
+      "description": "Keycode to toggle custom TPS bypass (Default: 66 for B).",
+      "type": "int",
+      "default": 66
+    },
+    "key-trajectory": {
+      "name": "Trajectory Hotkey",
+      "description": "Keycode to toggle Trajectory Visualizer (Default: 84 for T).",
+      "type": "int",
+      "default": 84
+    },
+    "key-hitboxes": {
+      "name": "Hitboxes Hotkey",
+      "description": "Keycode to toggle Hitboxes Visualizer (Default: 72 for H).",
+      "type": "int",
+      "default": 72
+    },
+    "key-macro-record": {
+      "name": "Macro Record Hotkey",
+      "description": "Keycode to start/stop Macro Recording (Default: 82 for R).",
+      "type": "int",
+      "default": 82
+    },
+    "key-macro-play": {
+      "name": "Macro Play Hotkey",
+      "description": "Keycode to start/stop Macro Playback (Default: 80 for P).",
+      "type": "int",
+      "default": 80
+    },
+    "key-noclip": {
+      "name": "Noclip Hotkey",
+      "description": "Keycode to toggle Noclip (Default: 78 for N).",
+      "type": "int",
+      "default": 78
     },
     "p1-autoclicker": {
       "name": "P1 Autoclicker",
