@@ -23,7 +23,7 @@ void MacroManager::handlePlayerInput(bool down, int button, bool isPlayer2) {
 }
 
 void MacroManager::onFrameTick(PlayLayer* playLayer) {
-    if (!playLayer || playLayer->m_isDead) return;
+    if (!playLayer || !playLayer->m_player1 || playLayer->m_player1->m_isDead) return;
 
     if (Config::get().macroMode == MacroMode::Play) {
         while (m_playIndex < m_actions.size() && m_actions[m_playIndex].frame <= m_currentFrame) {

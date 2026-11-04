@@ -25,7 +25,7 @@ void Autoclicker::onPlayerInput(bool down, int button, bool isPlayer2) {
 }
 
 void Autoclicker::onUpdate(PlayLayer* playLayer, float dt) {
-    if (!playLayer || playLayer->m_isDead) return;
+    if (!playLayer || !playLayer->m_player1 || playLayer->m_player1->m_isDead) return;
 
     auto& cfg = Config::get();
 
