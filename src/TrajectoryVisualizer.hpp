@@ -13,5 +13,6 @@ public:
 
     void setupForPlayLayer(PlayLayer* playLayer);
     void updateTrajectory(PlayLayer* playLayer);
+    void syncWithModEngines();
     void clear();
 };

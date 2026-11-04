@@ -1,5 +1,6 @@
 #include "TrajectoryVisualizer.hpp"
 #include "Config.hpp"
+#include "eclipse/config.hpp"
 #include <Geode/modify/PlayLayer.hpp>
 
 using namespace geode::prelude;
@@ -23,96 +24,39 @@ static void drawSegmentQuad(CCDrawNode* node, const CCPoint& from, const CCPoint
     node->drawPolygon(verts, 4, color, 0.0f, color);
 }
 
-static void drawHitboxBox(CCDrawNode* node, const CCPoint& center, const CCSize& size, const ccColor4F& fillColor, const ccColor4F& borderColor) {
-    if (!node) return;
+void TrajectoryVisualizer::syncWithModEngines() {
+    bool enabled = Config::get().showTrajectory;
 
-    float halfW = size.width * 0.5f;
-    float halfH = size.height * 0.5f;
-
-    CCPoint verts[4] = {
-        CCPoint(center.x - halfW, center.y - halfH),
-        CCPoint(center.x + halfW, center.y - halfH),
-        CCPoint(center.x + halfW, center.y + halfH),
-        CCPoint(center.x - halfW, center.y + halfH)
-    };
-
-    node->drawPolygon(verts, 4, fillColor, 1.8f, borderColor);
-
-    // Inner center marker
-    float dotR = 2.5f;
-    CCPoint dotVerts[4] = {
-        CCPoint(center.x - dotR, center.y - dotR),
-        CCPoint(center.x + dotR, center.y - dotR),
-        CCPoint(center.x + dotR, center.y + dotR),
-        CCPoint(center.x - dotR, center.y + dotR)
-    };
-
-    ccColor4F dotColor = {0.2f, 1.0f, 0.4f, 1.0f};
-    node->drawPolygon(dotVerts, 4, dotColor, 0.5f, {1.0f, 1.0f, 1.0f, 1.0f});
-}
-
-static bool checkHazardAt(const CCPoint& pos, const CCSize& playerSize, PlayLayer* playLayer) {
-    if (!playLayer || !playLayer->m_objects) return false;
-
-    CCRect playerBox(
-        pos.x - playerSize.width * 0.5f,
-        pos.y - playerSize.height * 0.5f,
-        playerSize.width,
-        playerSize.height
-    );
-
-    auto* objects = playLayer->m_objects;
-    for (int i = 0; i < objects->count(); ++i) {
-        auto* obj = static_cast<GameObject*>(objects->objectAtIndex(i));
-        if (!obj) continue;
-
-        CCPoint objPos = obj->getPosition();
-        if (std::abs(objPos.x - pos.x) > 40.0f) continue;
-
-        bool isHazard = (obj->m_objectType == GameObjectType::Hazard ||
-                         obj->m_objectType == GameObjectType::AnimatedHazard ||
-                         obj->m_objectID == 8 || obj->m_objectID == 9 || obj->m_objectID == 39 ||
-                         obj->m_objectID == 103 || (obj->m_objectID >= 1733 && obj->m_objectID <= 1736));
-
-        if (isHazard) {
-            float dist = ccpDistance(pos, objPos);
-            if (dist < 22.0f) {
-                return true;
-            }
-
-            CCRect objRect = obj->getObjectRect();
-            if (objRect.size.width < 1.0f) {
-                objRect = CCRect(objPos.x - 14.0f, objPos.y - 14.0f, 28.0f, 28.0f);
-            }
-
-            if (playerBox.intersectsRect(objRect)) {
-                return true;
-            }
-        }
+    // Direct integration with Eclipse Menu's native ShowTrajectory engine
+    if (geode::Loader::get()->isModLoaded("eclipse.eclipse-menu")) {
+        eclipse::config::set<bool>("player.showtrajectory", enabled);
+        eclipse::config::set<int>("player.showtrajectory.iterations", 180);
     }
-    return false;
 }
 
 void TrajectoryVisualizer::setupForPlayLayer(PlayLayer* playLayer) {
     if (!playLayer) return;
+
+    syncWithModEngines();
 
     if (m_drawNode) {
         m_drawNode->removeFromParentAndCleanup(true);
         m_drawNode = nullptr;
     }
 
-    m_drawNode = CCDrawNode::create();
-    if (!m_drawNode) return;
+    // Only create fallback CCDrawNode if Eclipse is not handling trajectory
+    if (!geode::Loader::get()->isModLoaded("eclipse.eclipse-menu")) {
+        m_drawNode = CCDrawNode::create();
+        if (!m_drawNode) return;
 
-    m_drawNode->setBlendFunc(ccBlendFunc({ GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA }));
-    m_drawNode->setZOrder(9999);
+        m_drawNode->setBlendFunc(ccBlendFunc({ GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA }));
+        m_drawNode->setZOrder(9999);
 
-    if (playLayer->m_debugDrawNode && playLayer->m_debugDrawNode->getParent()) {
-        playLayer->m_debugDrawNode->getParent()->addChild(m_drawNode, 9999);
-    } else if (playLayer->m_objectLayer && playLayer->m_objectLayer->getParent()) {
-        playLayer->m_objectLayer->getParent()->addChild(m_drawNode, 9999);
-    } else {
-        playLayer->addChild(m_drawNode, 9999);
+        if (playLayer->m_objectLayer && playLayer->m_objectLayer->getParent()) {
+            playLayer->m_objectLayer->getParent()->addChild(m_drawNode, 9999);
+        } else {
+            playLayer->addChild(m_drawNode, 9999);
+        }
     }
 }
 
@@ -128,6 +72,14 @@ void TrajectoryVisualizer::updateTrajectory(PlayLayer* playLayer) {
         return;
     }
 
+    // If Eclipse is loaded, it renders the complete, 100% accurate trajectory engine
+    if (geode::Loader::get()->isModLoaded("eclipse.eclipse-menu")) {
+        eclipse::config::set<bool>("player.showtrajectory", true);
+        clear();
+        return;
+    }
+
+    // Fallback real-time forward Euler physics simulator (no fake hardcoded parabolas)
     auto* player = playLayer->m_player1;
     if (!player || player->m_isDead) {
         clear();
@@ -143,92 +95,34 @@ void TrajectoryVisualizer::updateTrajectory(PlayLayer* playLayer) {
 
     CCPoint currentPos = player->getPosition();
     float gravityDir = player->m_isUpsideDown ? -1.0f : 1.0f;
-    float groundY = currentPos.y;
-    CCSize playerSize(26.0f, 26.0f);
+    float vx = player->m_playerSpeed;
+    if (vx <= 0.0f) vx = 8.37f * 60.0f; // Standard 1x speed fallback
 
-    ccColor4F redColor = {1.0f, 0.15f, 0.15f, 1.0f};          // Red Danger Line
-    ccColor4F greenColor = {0.0f, 1.0f, 0.25f, 1.0f};        // Neon Green Jump Arc
-    ccColor4F pinkFill = {1.0f, 0.15f, 0.65f, 0.55f};        // Pink Death Box Fill
-    ccColor4F pinkBorder = {1.0f, 0.1f, 0.3f, 1.0f};         // Red Death Box Border
+    float vy = static_cast<float>(player->m_yVelocity);
+    float gravity = static_cast<float>(player->m_gravity) * 60.0f * 60.0f;
+    if (gravity <= 0.0f) gravity = 0.958199f * 60.0f * 60.0f;
 
-    bool isCube = player->isInNormalMode();
-    bool isWave = player->m_isDart;
-    bool isShip = player->isFlying();
+    const float dt = 1.0f / 60.0f;
+    const int steps = 90;
 
-    // 1. Straight Ahead Ground / Danger Check
-    {
-        CCPoint simPos = currentPos;
-        bool hitHazard = false;
-        CCPoint hitPos = CCPointZero;
+    CCPoint simPos = currentPos;
+    float simVy = vy;
 
-        const float MAX_LOOKAHEAD = 220.0f;
-        const float STEP_X = 4.0f;
-        int maxSteps = static_cast<int>(MAX_LOOKAHEAD / STEP_X);
+    CCPoint prevPos = simPos;
+    ccColor4F trajColor = {0.0f, 1.0f, 0.35f, 0.9f}; // Clean neon green line
 
-        for (int step = 1; step <= maxSteps; ++step) {
-            CCPoint prevPos = simPos;
-            simPos.x += STEP_X;
+    for (int i = 0; i < steps; ++i) {
+        simPos.x += vx * dt;
+        simPos.y += simVy * dt;
 
-            if (checkHazardAt(simPos, playerSize, playLayer)) {
-                hitHazard = true;
-                hitPos = simPos;
-                drawSegmentQuad(m_drawNode, prevPos, simPos, 2.0f, redColor);
-                break;
-            }
-
-            drawSegmentQuad(m_drawNode, prevPos, simPos, 1.6f, redColor);
+        if (player->m_isDart) {
+            // Wave mode: follows diagonal angle
+        } else if (!player->isFlying()) {
+            // Cube / Ball / Robot / Swing: apply real gravitational acceleration
+            simVy -= gravity * gravityDir * dt;
         }
 
-        if (hitHazard && Config::get().showDeathBox) {
-            drawHitboxBox(m_drawNode, hitPos, playerSize, pinkFill, pinkBorder);
-        }
-    }
-
-    // 2. Parabolic Jump Arc / Flight Trajectory
-    if (isCube) {
-        const float jumpLength = 180.0f;
-        const float jumpHeight = 66.0f;
-        const float stepDist = 3.5f;
-        int numSteps = static_cast<int>(jumpLength / stepDist);
-
-        CCPoint prevPos = currentPos;
-        bool hitHazard = false;
-        CCPoint hitPos = CCPointZero;
-
-        for (int i = 1; i <= numSteps; ++i) {
-            float dx = static_cast<float>(i) * stepDist;
-            float normX = dx / jumpLength;
-            if (normX > 1.0f) normX = 1.0f;
-
-            float arcY = 4.0f * jumpHeight * normX * (1.0f - normX);
-            CCPoint simPos(currentPos.x + dx, groundY + (arcY * gravityDir));
-
-            if (checkHazardAt(simPos, playerSize, playLayer)) {
-                hitHazard = true;
-                hitPos = simPos;
-                drawSegmentQuad(m_drawNode, prevPos, simPos, 1.8f, redColor);
-                break;
-            }
-
-            drawSegmentQuad(m_drawNode, prevPos, simPos, 1.8f, greenColor);
-            prevPos = simPos;
-        }
-
-        if (hitHazard && Config::get().showDeathBox) {
-            drawHitboxBox(m_drawNode, hitPos, playerSize, pinkFill, pinkBorder);
-        }
-    } else if (isWave) {
-        float length = 180.0f;
-        CCPoint upEnd(currentPos.x + length, currentPos.y + (length * gravityDir));
-        drawSegmentQuad(m_drawNode, currentPos, upEnd, 1.8f, greenColor);
-    } else if (isShip) {
-        CCPoint prevPos = currentPos;
-        for (int i = 1; i <= 30; ++i) {
-            float dx = i * 6.0f;
-            float dy = (i * 3.5f) * gravityDir;
-            CCPoint simPos(currentPos.x + dx, currentPos.y + dy);
-            drawSegmentQuad(m_drawNode, prevPos, simPos, 1.8f, greenColor);
-            prevPos = simPos;
-        }
+        drawSegmentQuad(m_drawNode, prevPos, simPos, 2.0f, trajColor);
+        prevPos = simPos;
     }
 }

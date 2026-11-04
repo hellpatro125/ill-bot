@@ -18,6 +18,7 @@ using namespace geode::prelude;
 $on_mod(Loaded) {
     Config::get().loadFromSettings();
     TPSManager::get().applyTPS();
+    TrajectoryVisualizer::get().syncWithModEngines();
     log::info("ILLBot (Draggable Silicate Edition) loaded successfully!");
 }
 

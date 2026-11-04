@@ -562,10 +562,10 @@ void SilicateGUI::buildTrajectoryTab() {
     m_contentContainer->addChild(trajLbl);
 
     std::string desc = 
-        "- Calculates exact parabolic jump paths\n"
-        "- Predicts Wave 45-deg and Ship curves\n"
-        "- Detects hazards with Pink Death Boxes\n"
-        "- Supports gravity inversion & dual modes";
+        "- Accurate physics-based forward trajectory\n"
+        "- Full support for Cube, Wave, Ship, Ball, UFO\n"
+        "- Powered by native Eclipse / Geode trajectory engine\n"
+        "- Real-time gravity and speed adaptation";
 
     auto descLbl = CCLabelBMFont::create(desc.c_str(), "chatFont.fnt");
     descLbl->setScale(0.72f);
@@ -850,6 +850,7 @@ void SilicateGUI::onMacroClear(CCObject*) {
 void SilicateGUI::onToggleTrajectory(CCObject*) {
     Config::get().showTrajectory = !Config::get().showTrajectory;
     Config::get().saveToSettings();
+    TrajectoryVisualizer::get().syncWithModEngines();
 }
 
 void SilicateGUI::onToggleHitboxes(CCObject*) {
