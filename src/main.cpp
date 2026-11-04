@@ -126,7 +126,7 @@ class $modify(ILLPlayLayer, PlayLayer) {
 #if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_MACOS)
 class $modify(ILLKeyboardDispatcher, CCKeyboardDispatcher) {
     bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat, double time) {
-        if ((key == KEY_Tab || key == KEY_LeftAlt || key == KEY_F) && isKeyDown && !isKeyRepeat) {
+        if ((key == KEY_Tab || key == KEY_Alt || key == KEY_F || key == KEY_Shift) && isKeyDown && !isKeyRepeat) {
             auto scene = CCDirector::sharedDirector()->getRunningScene();
             if (scene) {
                 if (auto existing = scene->getChildByID("SilicateGUI")) {
