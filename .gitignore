@@ -1,0 +1,9 @@
+build/
+.geode/
+*.geode
+*.dll
+*.lib
+*.exp
+*.pdb
+.vs/
+.cache/

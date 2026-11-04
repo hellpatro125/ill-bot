@@ -1,0 +1,117 @@
+{
+  "geode": "5.11.2",
+  "gd": {
+    "win": "2.2081",
+    "android": "2.2081",
+    "mac": "2.2081"
+  },
+  "id": "maks.ill_bot",
+  "name": "ILLBot",
+  "version": "v1.0.0",
+  "developer": "Maks",
+  "description": "The ultimate Geometry Dash botting suite for Impossible Levels (ILL), featuring Silicate-styled GUI, independent P1/P2 Autoclickers, TPS Changer, Replay Macro, Trajectory and Hitboxes.",
+  "links": {
+    "community": "https://discord.gg/geode",
+    "source": "https://github.com/hellpatro125/ill-bot"
+  },
+  "tags": [
+    "gameplay",
+    "utility",
+    "cheat",
+    "interface"
+  ],
+  "settings": {
+    "p1-autoclicker": {
+      "name": "P1 Autoclicker",
+      "description": "Enable autoclicker for Player 1.",
+      "type": "bool",
+      "default": false
+    },
+    "p1-cps": {
+      "name": "P1 CPS (Clicks Per Second)",
+      "description": "Clicks per second for Player 1 (from 1 to 2000 CPS).",
+      "type": "float",
+      "default": 60.0,
+      "min": 1.0,
+      "max": 2000.0
+    },
+    "p1-hold-mode": {
+      "name": "P1 Hold Mode",
+      "description": "If enabled, P1 only autoclicks while holding click/key. If disabled, spams continuously.",
+      "type": "bool",
+      "default": false
+    },
+    "p2-autoclicker": {
+      "name": "P2 Autoclicker",
+      "description": "Enable autoclicker for Player 2 (Dual mode).",
+      "type": "bool",
+      "default": false
+    },
+    "p2-cps": {
+      "name": "P2 CPS (Clicks Per Second)",
+      "description": "Clicks per second for Player 2.",
+      "type": "float",
+      "default": 60.0,
+      "min": 1.0,
+      "max": 2000.0
+    },
+    "p2-hold-mode": {
+      "name": "P2 Hold Mode",
+      "description": "If enabled, P2 only autoclicks while holding Player 2 input.",
+      "type": "bool",
+      "default": false
+    },
+    "tps-enabled": {
+      "name": "TPS Bypass / Changer",
+      "description": "Enable custom physics ticks per second (TPS).",
+      "type": "bool",
+      "default": false
+    },
+    "tps-value": {
+      "name": "Target TPS",
+      "description": "Custom TPS value (e.g. 240, 360, 480, 1000, 2000, 50000).",
+      "type": "float",
+      "default": 240.0,
+      "min": 30.0,
+      "max": 50000.0
+    },
+    "speedhack-enabled": {
+      "name": "Speedhack",
+      "description": "Enable game speed manipulation.",
+      "type": "bool",
+      "default": false
+    },
+    "speedhack-value": {
+      "name": "Game Speed Multiplier",
+      "description": "Speedhack multiplier (e.g. 0.25x for building/botting, 1.0x for normal).",
+      "type": "float",
+      "default": 1.0,
+      "min": 0.05,
+      "max": 10.0
+    },
+    "show-trajectory": {
+      "name": "Show Trajectory",
+      "description": "Show forward flight/jump trajectory with hazard collision and death marker.",
+      "type": "bool",
+      "default": true
+    },
+    "show-hitboxes": {
+      "name": "Show Hitboxes",
+      "description": "Show hitboxes for player, solids, and hazards.",
+      "type": "bool",
+      "default": false
+    },
+    "noclip": {
+      "name": "Noclip",
+      "description": "Disable player death from hazards/solids.",
+      "type": "bool",
+      "default": false
+    },
+    "safe-mode": {
+      "name": "Safe Mode",
+      "description": "Prevent submitting scores to online leaderboards when cheats are active.",
+      "type": "bool",
+      "default": true
+    }
+  }
+}
