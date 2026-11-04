@@ -2,6 +2,7 @@
 
 #include <Geode/Geode.hpp>
 #include <string>
+#include <fmt/format.h>
 
 enum class MacroMode {
     Off = 0,
@@ -15,6 +16,14 @@ public:
         static Config instance;
         return instance;
     }
+
+    // GUI Geometry & Dragging
+    float guiPosX = -1.0f;
+    float guiPosY = -1.0f;
+
+    // Keybind
+    int menuKeyCode = 0x09; // Default KEY_Tab (0x09)
+    bool isListeningForKey = false;
 
     // Autoclicker Settings (Independent for P1 and P2)
     bool p1Autoclicker = false;
@@ -49,9 +58,36 @@ public:
     bool noclip = false;
     bool safeMode = true;
 
+    std::string getMenuKeyName() const {
+        switch (menuKeyCode) {
+            case 0x09: return "Tab";
+            case 0x12: return "Alt";
+            case 0x10: return "Shift";
+            case 0x11: return "Ctrl";
+            case 0x20: return "Space";
+            case 0x46: return "F";
+            case 0x47: return "G";
+            case 0x52: return "R";
+            case 0x54: return "T";
+            case 0x56: return "V";
+            case 0x43: return "C";
+            case 0x42: return "B";
+            case 0x58: return "X";
+            case 0x5A: return "Z";
+            case 0x51: return "Q";
+            case 0x45: return "E";
+            case 0x1000: return "~";
+            default: return fmt::format("Key #0x{:02X}", menuKeyCode);
+        }
+    }
+
     void loadFromSettings() {
         auto* mod = geode::Mod::get();
         if (!mod) return;
+
+        try { guiPosX = static_cast<float>(mod->getSettingValue<double>("gui-pos-x")); } catch (...) {}
+        try { guiPosY = static_cast<float>(mod->getSettingValue<double>("gui-pos-y")); } catch (...) {}
+        try { menuKeyCode = static_cast<int>(mod->getSettingValue<int64_t>("menu-key-code")); } catch (...) {}
 
         try { p1Autoclicker = mod->getSettingValue<bool>("p1-autoclicker"); } catch (...) {}
         try { p1CPS = static_cast<float>(mod->getSettingValue<double>("p1-cps")); } catch (...) {}
@@ -75,6 +111,10 @@ public:
     void saveToSettings() {
         auto* mod = geode::Mod::get();
         if (!mod) return;
+
+        (void)mod->setSettingValue<double>("gui-pos-x", static_cast<double>(guiPosX));
+        (void)mod->setSettingValue<double>("gui-pos-y", static_cast<double>(guiPosY));
+        (void)mod->setSettingValue<int64_t>("menu-key-code", static_cast<int64_t>(menuKeyCode));
 
         (void)mod->setSettingValue<bool>("p1-autoclicker", p1Autoclicker);
         (void)mod->setSettingValue<double>("p1-cps", static_cast<double>(p1CPS));

@@ -7,9 +7,9 @@
   },
   "id": "maks.ill_bot",
   "name": "ILLBot",
-  "version": "v1.0.0",
+  "version": "v1.0.1",
   "developer": "Maks",
-  "description": "The ultimate Geometry Dash botting suite for Impossible Levels (ILL), featuring Silicate-styled GUI, independent P1/P2 Autoclickers, TPS Changer, Replay Macro, Trajectory and Hitboxes.",
+  "description": "The ultimate Geometry Dash botting suite for Impossible Levels (ILL), featuring Silicate-styled draggable GUI, custom keybinds, independent P1/P2 Autoclickers, TPS Changer, Replay Macro, Trajectory and Hitboxes.",
   "links": {
     "community": "https://discord.gg/geode",
     "source": "https://github.com/hellpatro125/ill-bot"
@@ -21,6 +21,24 @@
     "interface"
   ],
   "settings": {
+    "gui-pos-x": {
+      "name": "GUI Position X",
+      "description": "Saved horizontal coordinate of the draggable menu window.",
+      "type": "float",
+      "default": -1.0
+    },
+    "gui-pos-y": {
+      "name": "GUI Position Y",
+      "description": "Saved vertical coordinate of the draggable menu window.",
+      "type": "float",
+      "default": -1.0
+    },
+    "menu-key-code": {
+      "name": "Menu Hotkey Code",
+      "description": "Keyboard keycode to toggle the ILLBot menu window (Default: 9 for Tab).",
+      "type": "int",
+      "default": 9
+    },
     "p1-autoclicker": {
       "name": "P1 Autoclicker",
       "description": "Enable autoclicker for Player 1.",

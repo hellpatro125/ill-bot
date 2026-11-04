@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-#include <Geode/ui/Popup.hpp>
 #include "../Config.hpp"
 #include "../MacroManager.hpp"
 
@@ -11,32 +10,45 @@ enum class TabID {
     PhysicsTPS = 2,
     Trajectory = 3,
     Hitboxes = 4,
-    Settings = 5
+    Keybinds = 5
 };
 
-class SilicateGUI : public geode::Popup {
+class SilicateGUI : public cocos2d::CCLayer {
 protected:
-    TabID m_currentTab = TabID::Record;
+    static inline SilicateGUI* s_instance = nullptr;
 
+    TabID m_currentTab = TabID::Record;
+    cocos2d::CCNode* m_windowNode = nullptr;
     cocos2d::CCNode* m_contentContainer = nullptr;
     cocos2d::CCMenu* m_sidebarMenu = nullptr;
     cocos2d::CCDrawNode* m_backgroundNode = nullptr;
 
-    bool init(float width, float height);
+    // Dragging state
+    bool m_isDragging = false;
+    cocos2d::CCPoint m_dragOffset = cocos2d::CCPointZero;
 
-    void switchTab(TabID tab);
+    bool init() override;
+
+    void registerWithTouchDispatcher() override;
+    bool ccTouchBegan(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    void ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    void ccTouchEnded(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    void ccTouchCancelled(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+
     void updateSidebarButtons();
 
-    // Content Builders
+    // Content builders
     void buildRecordTab();
     void buildAutoclickerTab();
     void buildPhysicsTPSTab();
     void buildTrajectoryTab();
     void buildHitboxesTab();
-    void buildSettingsTab();
+    void buildKeybindsTab();
 
     // Callbacks
+    void onClose(cocos2d::CCObject* sender);
     void onTabClicked(cocos2d::CCObject* sender);
+
     void onToggleP1Autoclicker(cocos2d::CCObject* sender);
     void onP1CPSMinus(cocos2d::CCObject* sender);
     void onP1CPSPlus(cocos2d::CCObject* sender);
@@ -69,6 +81,13 @@ protected:
     void onToggleNoclip(cocos2d::CCObject* sender);
     void onToggleSafeMode(cocos2d::CCObject* sender);
 
+    void onChangeMenuKey(cocos2d::CCObject* sender);
+
 public:
     static SilicateGUI* create();
+    static SilicateGUI* get() { return s_instance; }
+
+    void switchTab(TabID tab);
+    void refreshCurrentTab() { switchTab(m_currentTab); }
+    void close();
 };

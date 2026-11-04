@@ -18,7 +18,22 @@ using namespace geode::prelude;
 $on_mod(Loaded) {
     Config::get().loadFromSettings();
     TPSManager::get().applyTPS();
-    log::info("ILLBot (Silicate Edition) loaded successfully!");
+    log::info("ILLBot (Draggable Silicate Edition) loaded successfully!");
+}
+
+static void toggleILLBotMenu() {
+    auto scene = CCDirector::sharedDirector()->getRunningScene();
+    if (!scene) return;
+
+    if (auto existing = scene->getChildByID("SilicateGUI")) {
+        existing->removeFromParentAndCleanup(true);
+        return;
+    }
+
+    if (auto gui = SilicateGUI::create()) {
+        gui->setID("SilicateGUI");
+        scene->addChild(gui, 1000);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -42,9 +57,7 @@ class $modify(ILLMenuLayer, MenuLayer) {
     }
 
     void onOpenILLMenu(CCObject*) {
-        if (auto popup = SilicateGUI::create()) {
-            popup->show();
-        }
+        toggleILLBotMenu();
     }
 };
 
@@ -67,9 +80,7 @@ class $modify(ILLPauseLayer, PauseLayer) {
     }
 
     void onOpenILLPause(CCObject*) {
-        if (auto popup = SilicateGUI::create()) {
-            popup->show();
-        }
+        toggleILLBotMenu();
     }
 };
 
@@ -121,25 +132,33 @@ class $modify(ILLPlayLayer, PlayLayer) {
 };
 
 // -----------------------------------------------------------------------------
-// KEYBOARD DISPATCHER (Toggle menu with Tab, Left Alt, or F)
+// KEYBOARD DISPATCHER (Custom Keybind & Fallback Hotkeys)
 // -----------------------------------------------------------------------------
 #if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_MACOS)
 class $modify(ILLKeyboardDispatcher, CCKeyboardDispatcher) {
     bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat, double time) {
-        if ((key == KEY_Tab || key == KEY_Alt || key == KEY_F || key == KEY_Shift) && isKeyDown && !isKeyRepeat) {
-            auto scene = CCDirector::sharedDirector()->getRunningScene();
-            if (scene) {
-                if (auto existing = scene->getChildByID("SilicateGUI")) {
-                    existing->removeFromParentAndCleanup(true);
-                    return true;
-                }
-                if (auto popup = SilicateGUI::create()) {
-                    popup->setID("SilicateGUI");
-                    popup->show();
-                    return true;
-                }
+        auto& cfg = Config::get();
+
+        // 1. If currently listening for new menu keybind in Keybinds tab:
+        if (cfg.isListeningForKey && isKeyDown && !isKeyRepeat) {
+            cfg.menuKeyCode = static_cast<int>(key);
+            cfg.isListeningForKey = false;
+            cfg.saveToSettings();
+            if (auto gui = SilicateGUI::get()) {
+                gui->refreshCurrentTab();
             }
+            return true; // Swallow the key
         }
+
+        // 2. Check if key triggers menu toggle
+        bool isMenuKey = (static_cast<int>(key) == cfg.menuKeyCode) ||
+                         (key == KEY_Tab) || (key == KEY_Alt) || (key == KEY_F);
+
+        if (isMenuKey && isKeyDown && !isKeyRepeat) {
+            toggleILLBotMenu();
+            return true;
+        }
+
         return CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat, time);
     }
 };
